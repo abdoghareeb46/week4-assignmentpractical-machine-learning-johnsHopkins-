@@ -1,0 +1,99 @@
+---
+title: "Week 4 Assignment"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+
+```{r}
+
+library(caret)
+library(kernlab)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(ggplot2)
+library(lattice)
+library(knitr)
+library(rmarkdown)
+```
+#### Reading training and testing data
+
+```{r}
+training<-read.csv('pml-training.csv')
+testing<-read.csv("pml-testing.csv")
+
+```
+
+#### Checking Dimensions of data
+```{r}
+dim(training)
+dim(testing)
+```
+#### Classes that exist in Classe Column
+```{r}
+distinct(select(training,classe))
+```
+#### Removing near zero Var. cols
+```{r}
+non_zero_var<-nearZeroVar(training)
+new_training<-training[,-non_zero_var]
+new_testing<-testing[,-non_zero_var]
+dim(new_training)
+dim(new_testing)
+```
+#### removing cols that have more than 95% of nan values
+```{r}
+nan_cols<-sapply(new_training, function(c) mean(is.na(c)))>.95
+new_training2<-new_training[,nan_cols==FALSE]
+new_testing2<-new_testing[,nan_cols==FALSE]
+dim(new_training2)
+dim(new_testing2)
+any(is.na(new_training2))
+```
+
+#### Choose cols from column 8 to the classe column
+```{r}
+f_training<-new_training2[,8:59]
+f_testing<-new_testing2[,8:59]
+```
+#### separate data into training and testing
+```{r}
+inTrain<-createDataPartition(f_training$classe,p=.65,list = FALSE)
+train_data<-f_training[inTrain,]
+test_data<-f_testing[-inTrain,]
+```
+#### Build Rpart Model and prediction
+```{r}
+dt_model<-train(classe~.,data = train_data,method='rpart')
+dt_pred<-predict(dt_model,test_data)
+confusionMatrix(dt_model, test_data$classe)
+rpart.plot(dt_model$finalModel, roundint=FALSE)
+
+```
+
+#### Build RF model and prediction
+```{r}
+f_model<-train(classe~.,data=train_data,method='rf')
+rf_pred<-predict(rf_model,test_data)
+RF_pred_Matrix<-confusionMatrix(rf_pred, test_data$classe)
+print(RF_pred_Matrix)
+```
+#### Build RF model and prediction
+```{r}
+rf_model<-train(classe~.,data=train_data,method='rf')
+rf_pred<-predict(rf_model,test_data)
+RF_pred_Matrix<-confusionMatrix(rf_pred, test_data$classe)
+print(RF_pred_Matrix)
+```
+#### build GBM 
+```{r}
+GBM_model <- train(classe ~ ., data = train_data, method = "gbm", verbose = FALSE)
+print(GBM_model$finalModel)
+GBM_pred <- predict(GBM_model, test_data)
+GBM_pred_Matrix <- confusionMatrix(GBM_pred, test_data$classe)
+print(GBM_pred_Matrix)
+```
+
